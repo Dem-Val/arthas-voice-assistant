@@ -21,10 +21,12 @@ class SpeechRecognizer:
 
     def __init__(self):
         self.wake_name = config.ASSISTANT_NAME.lower()
-        # Варианты обращения
+        # Варианты обращения к ассистенту
         self.wake_patterns = [
             rf"\b{self.wake_name}\b",
-            rf"\b{self.wake_name}[а-яё]*\b",  # Лина, Линочка, Линуся, Лине
+            rf"\b{self.wake_name}[а-яё]*\b",  # гладиатор, гладиатора, гладиатору
+            r"\bглад\b",
+            r"\bgladiator\b",
         ]
         self.recognizer = None
         self.microphone = None

@@ -1,7 +1,14 @@
 import json
+import os
+import sys
 from typing import Callable, Dict, Any, List
 from google import genai
 from google.genai import types
+
+try:
+    from openai import OpenAI
+except ImportError:
+    OpenAI = None
 
 import config
 from tools.app_scanner import app_scanner
@@ -10,22 +17,22 @@ from tools.system_control import SystemControl
 from tools.web_tools import web_tools
 
 
-# Системный промпт Лины
+# Системный промпт Гладиатора
 SYSTEM_INSTRUCTION = f"""
-Ты — {config.ASSISTANT_NAME.capitalize()}, умный голосовой помощник и интеллектуальный агент для компьютера с Windows.
-Ты управляешь компьютером, выполняешь команды пользователя и отвечаешь на вопросы.
+Ты — {config.ASSISTANT_NAME.capitalize()}, мощный, умный и преданный голосовой помощник и интеллектуальный агент для операционной системы Windows.
+Ты управляешь компьютером, мгновенно выполняешь команды пользователя и отвечаешь на вопросы уверенным, лаконичным тоном.
 
 ПРАВИЛА ПОВЕДЕНИЯ:
-1. Если пользователь просит выполнить действие (открыть программу, найти файл, изменить звук, открыть сайт, включить музыку, свернуть окна), ТЫ ОБЯЗАНА вызвать подходящую функцию (tool).
-2. Пользователь может говорить разговорно (например: "открой телегу", "выруби звук", "сделай потише", "вруби на ютубе песню", "найди файл диплома"). Понимай смысл и выбирай правильный инструмент.
-3. Голосовой ответ должен быть кратким, живым и естественным (1-2 коротких предложения), так как он будет озвучиваться вслух. Избегай списков и длинных лекций, если тебя специально об этом не просили.
-4. После вызова инструмента кратко подтверди выполнение пользователю.
+1. Если пользователь просит выполнить системное действие (открыть программу, найти файл, изменить звук, открыть сайт, включить музыку, свернуть окна, заблокировать ПК), ТЫ ОБЯЗАН вызвать подходящую функцию (tool).
+2. Пользователь может говорить разговорно (например: "открой телегу", "выруби звук", "сделай потише", "вруби на ютубе музыку", "найди файл диплома"). Распознавай суть и выбирай правильный инструмент.
+3. Голосовой ответ должен быть кратким, живым и естественным (1-2 коротких предложения), так как он будет озвучиваться вслух. Никаких длинных монологов без просьбы.
+4. После вызова инструмента коротко подтверди выполнение пользователю.
 """
 
 
-# Определение инструментов для Gemini
+# Определение системных инструментов
 def launch_application(app_name: str) -> str:
-    """Ищет и открывает программу или приложение на компьютере по названию (например: 'телеграм', 'калькулятор', 'хром', 'стим', 'блокнот')."""
+    """Ищет и открывает программу или приложение на компьютере по названию (например: 'телеграм', 'калькулятор', 'хром', 'стим', 'блокнот', 'опера')."""
     return app_scanner.launch(app_name)
 
 
@@ -35,7 +42,7 @@ def open_file(filename: str) -> str:
 
 
 def show_file_in_folder(filename: str) -> str:
-    """Находит файл и показывает его в проводнике Windows."""
+    """Находит файл и показывает его расположение в проводнике Windows."""
     return file_search.show_in_folder(filename)
 
 
@@ -55,7 +62,7 @@ def toggle_mute() -> str:
 
 
 def media_play_pause() -> str:
-    """Включает или ставит на паузу музыку или видео."""
+    """Включает или ставит на паузу воспроизведение музыки или видео."""
     return SystemControl.media_play_pause()
 
 
@@ -85,7 +92,7 @@ def lock_computer() -> str:
 
 
 def search_google(query: str) -> str:
-    """Ищет запрос в интернете через поисковик в браузере."""
+    """Ищет информацию в интернете через браузер."""
     return web_tools.search_google(query)
 
 
@@ -99,7 +106,6 @@ def play_youtube(query: str) -> str:
     return web_tools.play_youtube(query)
 
 
-# Список доступных функций
 TOOL_FUNCTIONS: List[Callable] = [
     launch_application,
     open_file,
@@ -122,7 +128,7 @@ FUNCTIONS_MAP: Dict[str, Callable] = {fn.__name__: fn for fn in TOOL_FUNCTIONS}
 
 
 class AssistantBrain:
-    """Мозг ассистента на базе Google Gemini с поддержкой Function Calling."""
+    """Мозг ассистента: Google Gemini с поддержкой прокси, VPN и альтернативных провайдеров."""
 
     def __init__(self):
         self.api_key = config.GEMINI_API_KEY
@@ -135,7 +141,15 @@ class AssistantBrain:
 
     def _init_client(self):
         try:
-            self.client = genai.Client(api_key=self.api_key)
+            http_options = types.HttpOptions()
+            # Настройка прокси при наличии
+            if config.GEMINI_PROXY:
+                http_options.client_args = {"proxy": config.GEMINI_PROXY}
+                print(f"[Brain] Используется прокси для Gemini: {config.GEMINI_PROXY}")
+            if config.GEMINI_BASE_URL:
+                http_options.base_url = config.GEMINI_BASE_URL
+
+            self.client = genai.Client(api_key=self.api_key, http_options=http_options)
             self.chat = self.client.chats.create(
                 model=self.model_name,
                 config=types.GenerateContentConfig(
@@ -144,22 +158,21 @@ class AssistantBrain:
                     temperature=0.7,
                 ),
             )
-            print("[Brain] Мозг Gemini успешно инициализирован.")
+            print(f"[Brain] Мозг {config.ASSISTANT_NAME.capitalize()} (Gemini) успешно инициализирован.")
         except Exception as e:
             print(f"[Brain Error] Не удалось инициализировать Gemini: {e}")
             self.client = None
 
     def update_api_key(self, api_key: str):
-        """Обновляет ключ API и пересоздает клиента."""
         self.api_key = api_key.strip()
         self._init_client()
 
     def process_user_input(self, user_text: str) -> str:
         """
         Обрабатывает фразу пользователя:
-        - Отправляет в Gemini
-        - Если Gemini решает вызвать инструмент(ы), выполняет их и возвращает результат
-        - Возвращает финальный голосовой ответ для пользователя
+        - Отправляет в ИИ
+        - Выполняет вызванные инструменты
+        - Возвращает финальный голосовой ответ
         """
         if not self.client or not self.chat:
             return "Ключ Gemini API не настроен. Пожалуйста, укажите ваш GEMINI_API_KEY в файле .env."
@@ -168,7 +181,7 @@ class AssistantBrain:
             print(f"[User]: {user_text}")
             response = self.chat.send_message(user_text)
 
-            # Проверяем, есть ли вызовы функций
+            # Выполнение Function Calling
             while response.function_calls:
                 function_responses = []
                 for call in response.function_calls:
@@ -192,13 +205,26 @@ class AssistantBrain:
                         )
                     )
 
-                # Передаем результат выполнения функции обратно модели
                 response = self.chat.send_message(function_responses)
 
-            return response.text or "Готово!"
+            return response.text or "Слушаюсь и повинуюсь!"
 
         except Exception as e:
-            print(f"[Brain Process Error]: {e}")
+            err_msg = str(e)
+            print(f"[Brain Process Error]: {err_msg}")
+
+            # Проверка на региональную блокировку Google (User location is not supported)
+            if "User location is not supported" in err_msg or "FAILED_PRECONDITION" in err_msg:
+                print("\n" + "!" * 60)
+                print(" ⚠️  РЕГИОНАЛЬНОЕ ОГРАНИЧЕНИЕ GOOGLE GEMINI:")
+                print(" Google блокирует прямые запросы к AI Studio с IP-адресов РФ.")
+                print(" Решения:")
+                print("  1. Включите любой системный VPN на вашем компьютере (Amnezia, WireGuard, VLESS, Outline и др.)")
+                print("  2. ИЛИ пропишите локальный прокси в файле .env: GEMINI_PROXY=http://127.0.0.1:10809")
+                print("  3. ИЛИ используйте OpenRouter (работает в РФ без VPN): укажите OPENAI_API_KEY в .env")
+                print("!" * 60 + "\n")
+                return "Google ограничивает доступ из вашего региона. Пожалуйста, включите VPN на компьютере или настройте прокси в файле настроек."
+
             return "Произошла ошибка при обработке запроса. Попробуйте еще раз."
 
 
