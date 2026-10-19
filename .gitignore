@@ -1,0 +1,32 @@
+# Секреты и ключи API (НИКОГДА НЕ ПУШИТЬ НА GITHUB)
+.env
+*.env
+
+# Виртуальное окружение Python
+.venv/
+env/
+venv/
+ENV/
+
+# Кэш Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Сборки и исполняемые файлы
+build/
+dist/
+*.spec
+*.exe
+
+# Временные аудиофайлы
+*.mp3
+*.wav
+
+# IDE и системные файлы
+.idea/
+.vscode/
+Thumbs.db
+Desktop.ini
+.DS_Store
