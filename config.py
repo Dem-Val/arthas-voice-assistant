@@ -25,6 +25,9 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://openrouter.ai/api/v1").strip()
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "google/gemini-2.0-flash-exp:free").strip()
 
+# Голосовой ответ (TTS) - временно отключен для отладки
+ENABLE_TTS = os.getenv("ENABLE_TTS", "false").strip().lower() in ("true", "1", "yes")
+
 # Голосовые настройки (мужской голос Дмитрий для Гладиатора)
 VOICE_NAME = os.getenv("VOICE_NAME", "ru-RU-DmitryNeural").strip()
 VOICE_RATE = os.getenv("VOICE_RATE", "+0%").strip()

@@ -84,6 +84,10 @@ class TextToSpeech:
         text = text.strip()
         print(f"[{config.ASSISTANT_NAME.capitalize()}]: {text}")
 
+        # Если голосовой ответ отключен (для отладки), просто выводим текст в консоль
+        if not getattr(config, "ENABLE_TTS", False):
+            return
+
         with self._lock:
             # Пробуем Edge-TTS с повторной попыткой при сбое соединения
             edge_success = False
