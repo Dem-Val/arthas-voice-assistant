@@ -24,30 +24,48 @@ def ensure_api_key():
 
     if not has_key:
         print("\n" + "=" * 60)
-        print("  🔑 ТРЕБУЕТСЯ КЛЮЧ ИИ (БЕСПЛАТНО)")
+        print("  🔑 ВЫБЕРИТЕ БЕСПЛАТНЫЙ КЛЮЧ ИИ (БЕЗ ДЕНЕГ И БЕЗ КАРТ)")
         print("=" * 60)
-        print("  1. OpenRouter (Рекомендуется для РФ, без VPN):")
-        print("     👉 Получить ключ: https://openrouter.ai/keys (начинается на sk-or-...)")
-        print("  2. Google Gemini API:")
+        print("  1. ⚡ Groq Cloud (РЕКОМЕНДУЕТСЯ: 100% бесплатно, 0.4 сек, без VPN):")
+        print("     👉 Получить ключ: https://console.groq.com/keys")
+        print("     (Войдите через Google/GitHub и нажмите Create API Key, начинается на gsk_...)")
+        print("\n  2. 🐙 GitHub Models (Бесплатно для всех пользователей GitHub):")
+        print("     👉 Получить токен: https://github.com/settings/tokens")
+        print("\n  3. 🌐 Google Gemini API (требует VPN в РФ):")
         print("     👉 Получить ключ: https://aistudio.google.com/app/apikey")
         print("=" * 60)
-        key = input("👉 Введите ваш API Key (OpenRouter или Gemini): ").strip()
+        key = input("👉 Введите ваш API Key (Groq, GitHub или Gemini): ").strip()
         if key:
-            if key.startswith("sk-"):
+            if key.startswith("gsk_"):
+                config.OPENAI_API_KEY = key
+                config.AI_PROVIDER = "groq"
+                config.OPENAI_BASE_URL = "https://api.groq.com/openai/v1"
+                config.OPENAI_MODEL = "llama-3.3-70b-versatile"
+                print("✅ Определен ключ Groq Cloud (сверхбыстрый и бесплатный)!")
+            elif key.startswith("ghp_") or key.startswith("github_pat_"):
+                config.OPENAI_API_KEY = key
+                config.AI_PROVIDER = "github"
+                config.OPENAI_BASE_URL = "https://models.inference.ai.azure.com"
+                config.OPENAI_MODEL = "gpt-4o-mini"
+                print("✅ Определен ключ GitHub Models!")
+            elif key.startswith("sk-or-"):
                 config.OPENAI_API_KEY = key
                 config.AI_PROVIDER = "openrouter"
-                print("✅ Определен ключ OpenRouter (работает в РФ без VPN)!")
+                config.OPENAI_BASE_URL = "https://openrouter.ai/api/v1"
+                config.OPENAI_MODEL = "deepseek/deepseek-chat:free"
+                print("✅ Определен ключ OpenRouter!")
             else:
                 config.GEMINI_API_KEY = key
                 print("✅ Определен ключ Google Gemini!")
 
-            env_content = f"""# Провайдер ИИ: "openrouter" (DeepSeek/Gemini без VPN) или "gemini"
+            env_content = f"""# Провайдер ИИ: "groq", "openrouter", "github" или "gemini"
 AI_PROVIDER={config.AI_PROVIDER}
 
-# OpenRouter (бесплатный DeepSeek V3 без VPN и ограничений)
+# Настройки OpenAI / Groq / OpenRouter API
 OPENAI_API_KEY={config.OPENAI_API_KEY}
 OPENAI_BASE_URL={config.OPENAI_BASE_URL}
 OPENAI_MODEL={config.OPENAI_MODEL}
+
 
 # Google Gemini API
 GEMINI_API_KEY={config.GEMINI_API_KEY}

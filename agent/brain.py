@@ -262,17 +262,39 @@ class AssistantBrain:
         self._init_providers()
 
     def _init_providers(self):
-        # 1. OpenRouter / Groq / OpenAI-совместимый движок
+        # 1. OpenRouter / Groq / GitHub / OpenAI-совместимый движок
         if config.OPENAI_API_KEY and OpenAI:
+            key = config.OPENAI_API_KEY.strip()
+            base_url = config.OPENAI_BASE_URL
+            model = config.OPENAI_MODEL
+
+            # Умное автоопределение провайдера по формату ключа:
+            if key.startswith("gsk_"):
+                # Ключ от сверхбыстрого Groq Cloud (100% бесплатно навсегда, без депозитов и карт)
+                base_url = "https://api.groq.com/openai/v1"
+                if not os.getenv("OPENAI_MODEL") or "deepseek" in model:
+                    model = "llama-3.3-70b-versatile"
+                print(f"[Brain] Распознан ключ Groq Cloud! Сверхбыстрая скорость (Модель: {model})")
+            elif key.startswith("ghp_") or key.startswith("github_pat_"):
+                # Токен GitHub Models (бесплатно для всех пользователей GitHub)
+                base_url = "https://models.inference.ai.azure.com"
+                model = "gpt-4o-mini"
+                print(f"[Brain] Распознан ключ GitHub Models! (Модель: {model})")
+            elif key.startswith("sk-or-"):
+                base_url = "https://openrouter.ai/api/v1"
+                print(f"[Brain] Распознан ключ OpenRouter! (Модель: {model})")
+
             try:
                 self.openai_client = OpenAI(
-                    api_key=config.OPENAI_API_KEY,
-                    base_url=config.OPENAI_BASE_URL,
+                    api_key=key,
+                    base_url=base_url,
                 )
-                print(f"[Brain] Подключен безрегиональный ИИ ({config.OPENAI_MODEL}) через {config.OPENAI_BASE_URL}")
+                self.active_openai_model = model
+                print(f"[Brain] Подключен безрегиональный ИИ ({model}) через {base_url}")
             except Exception as e:
-                print(f"[Brain Error] Не удалось инициализировать OpenAI/OpenRouter: {e}")
+                print(f"[Brain Error] Не удалось инициализировать OpenAI/Groq: {e}")
                 self.openai_client = None
+
 
         # 2. Google Gemini
         if config.GEMINI_API_KEY:
@@ -342,9 +364,10 @@ class AssistantBrain:
             if len(self.openai_messages) > 13:
                 self.openai_messages = [self.openai_messages[0]] + self.openai_messages[-12:]
 
+            active_model = getattr(self, "active_openai_model", config.OPENAI_MODEL)
             try:
                 response = self.openai_client.chat.completions.create(
-                    model=config.OPENAI_MODEL,
+                    model=active_model,
                     messages=self.openai_messages,
                     tools=OPENAI_TOOLS,
                     tool_choice="auto",
@@ -353,10 +376,11 @@ class AssistantBrain:
             except Exception:
                 # Если модель на бесплатном пуле не поддерживает tools schema, вызываем без tools
                 response = self.openai_client.chat.completions.create(
-                    model=config.OPENAI_MODEL,
+                    model=active_model,
                     messages=self.openai_messages,
                     temperature=0.7,
                 )
+
 
             msg = response.choices[0].message
 
