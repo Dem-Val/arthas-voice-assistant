@@ -10,10 +10,12 @@
 
 ## 🚀 Быстрый запуск
 
-### Вариант 1: Через готовый файл `Arthas.exe`
+### Вариант 1: Через готовый файл `Arthas.exe` (в 1 клик)
 1. Скачайте файл **`Arthas.exe`** из раздела [Releases](https://github.com/Dem-Val/arthas-voice-assistant/releases).
 2. Запустите двойным кликом.
-3. При первом запуске введите бесплатный ключ Gemini API (получить можно на [Google AI Studio](https://aistudio.google.com/app/apikey)).
+3. При первом запуске введите бесплатный ключ:
+   * **⚡ Groq Cloud (Рекомендуется для РФ, без VPN, 100% бесплатно):** [console.groq.com/keys](https://console.groq.com/keys) (ключ `gsk_...`).
+   * **🌐 Google Gemini API (требует VPN в РФ):** [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey).
 
 ### Вариант 2: Запуск из исходного кода
 1. Клонируйте репозиторий:
@@ -22,6 +24,7 @@
    cd arthas-voice-assistant
    ```
 2. Запустите `start.bat`.
+
 
 ---
 
@@ -69,8 +72,12 @@ arthas-voice-assistant/
 
 ---
 
-## 🌍 Обход региональных ограничений (для пользователей из РФ):
-Google блокирует прямые запросы к AI Studio с российских IP. Для решения:
-1. **Включите любой VPN на ПК** (WireGuard, Amnezia, VLESS, Outline и др.) — ключ Gemini заработает сразу.
-2. **Или укажите прокси в `.env`**: `GEMINI_PROXY=http://127.0.0.1:10809`.
-3. **Или используйте OpenRouter (без VPN)**: укажите `OPENAI_API_KEY` в файле `.env`.
+## 🌍 Работа без VPN и региональных ограничений (для пользователей из РФ):
+1. **⚡ Рекомендуется: Groq Cloud (без VPN, 100% бесплатно навсегда):**
+   * Получите ключ на [console.groq.com/keys](https://console.groq.com/keys).
+   * Вставьте в `.env`: `OPENAI_API_KEY=gsk_...`
+   * Работает прямо из РФ с максимальной скоростью в мире (0.3-0.5с).
+2. **🌐 Google Gemini (требует VPN):**
+   * Включите любой системный VPN на ПК (WireGuard, Amnezia, VLESS, Outline и др.) — ключ Gemini заработает сразу.
+   * Или укажите локальный прокси в `.env`: `GEMINI_PROXY=http://127.0.0.1:10809`.
+
