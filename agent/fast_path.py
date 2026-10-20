@@ -24,6 +24,32 @@ class FastPathRouter:
             print("[FastPath] Мгновенное открытие браузера")
             return app_scanner.launch("браузер")
 
+        # 0.1 Управление вкладками браузера (мгновенные горячие клавиши)
+        if any(p in clean for p in ["новую вкладку", "новая вкладка", "открой вкладку", "создай вкладку", "вкладку в бра", "вкладку в браузер"]):
+            print("[FastPath] Открытие новой вкладки браузера (Ctrl+T)")
+            return SystemControl.new_browser_tab()
+
+        if any(p in clean for p in ["закрой вкладку", "закрыть вкладку", "закрой эту вкладку"]):
+            print("[FastPath] Закрытие вкладки браузера (Ctrl+W)")
+            return SystemControl.close_browser_tab()
+
+        if any(p in clean for p in ["верни вкладку", "открой закрытую вкладку", "восстанови вкладку"]):
+            print("[FastPath] Восстановление закрытой вкладки (Ctrl+Shift+T)")
+            return SystemControl.reopen_closed_tab()
+
+        if any(p in clean for p in ["следующая вкладка", "след вкладка", "переключи вкладку"]):
+            print("[FastPath] Следующая вкладка (Ctrl+Tab)")
+            return SystemControl.next_browser_tab()
+
+        if any(p in clean for p in ["предыдущая вкладка", "пред вкладка"]):
+            print("[FastPath] Предыдущая вкладка (Ctrl+Shift+Tab)")
+            return SystemControl.prev_browser_tab()
+
+        if any(p in clean for p in ["обнови страницу", "перезагрузи страницу", "обнови сайт", "обнови вкладку"]):
+            print("[FastPath] Обновление страницы (F5)")
+            return SystemControl.reload_page()
+
+
         # 1. Запуск приложений (открой / запусти / включи / вруби <приложение>)
         launch_match = re.match(
             r"^(?:открой|запусти|включи|вруби)\s+(?:программу\s+|приложение\s+|браузер\s+)?(.+)$",

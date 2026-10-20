@@ -126,3 +126,52 @@ class SystemControl:
         """Блокирует компьютер."""
         os.system("rundll32.exe user32.dll,LockWorkStation")
         return "Компьютер заблокирован."
+
+    @staticmethod
+    def new_browser_tab() -> str:
+        """Открывает новую вкладку в браузере (Ctrl+T)."""
+        if pyautogui:
+            pyautogui.hotkey("ctrl", "t")
+            return "Открыл новую вкладку."
+        return "Команда отправлена."
+
+    @staticmethod
+    def close_browser_tab() -> str:
+        """Закрывает текущую вкладку в браузере (Ctrl+W)."""
+        if pyautogui:
+            pyautogui.hotkey("ctrl", "w")
+            return "Закрыл вкладку."
+        return "Команда отправлена."
+
+    @staticmethod
+    def reopen_closed_tab() -> str:
+        """Восстанавливает последнюю закрытую вкладку (Ctrl+Shift+T)."""
+        if pyautogui:
+            pyautogui.hotkey("ctrl", "shift", "t")
+            return "Восстановил закрытую вкладку."
+        return "Команда отправлена."
+
+    @staticmethod
+    def next_browser_tab() -> str:
+        """Переключает на следующую вкладку (Ctrl+Tab)."""
+        if pyautogui:
+            pyautogui.hotkey("ctrl", "tab")
+            return "Следующая вкладка."
+        return "Команда отправлена."
+
+    @staticmethod
+    def prev_browser_tab() -> str:
+        """Переключает на предыдущую вкладку (Ctrl+Shift+Tab)."""
+        if pyautogui:
+            pyautogui.hotkey("ctrl", "shift", "tab")
+            return "Предыдущая вкладка."
+        return "Команда отправлена."
+
+    @staticmethod
+    def reload_page() -> str:
+        """Обновляет страницу в браузере (F5)."""
+        if pyautogui:
+            pyautogui.press("f5")
+            return "Страница обновлена."
+        return "Команда отправлена."
+

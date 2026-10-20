@@ -52,9 +52,10 @@ class SpeechRecognizer:
             # Оптимальная чувствительность и быстрое срабатывание
             self.recognizer.energy_threshold = 300
             self.recognizer.dynamic_energy_threshold = True
-            # Снижаем задержку тишины с 0.8с до 0.5с для мгновенного ответа
-            self.recognizer.pause_threshold = 0.5
-            self.recognizer.non_speaking_duration = 0.4
+            # Порог паузы 0.8с для естественной речи без обрывания фраз
+            self.recognizer.pause_threshold = 0.8
+            self.recognizer.non_speaking_duration = 0.5
+
 
             try:
                 self.microphone = sr.Microphone()

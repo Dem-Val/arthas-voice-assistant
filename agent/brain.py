@@ -272,8 +272,7 @@ class AssistantBrain:
             if key.startswith("gsk_"):
                 # Ключ от сверхбыстрого Groq Cloud (100% бесплатно навсегда, без депозитов и карт)
                 base_url = "https://api.groq.com/openai/v1"
-                if not os.getenv("OPENAI_MODEL") or "deepseek" in model:
-                    model = "llama-3.3-70b-versatile"
+                model = os.getenv("OPENAI_MODEL", "qwen/qwen3.8-27b").strip()
                 print(f"[Brain] Распознан ключ Groq Cloud! Сверхбыстрая скорость (Модель: {model})")
             elif key.startswith("ghp_") or key.startswith("github_pat_"):
                 # Токен GitHub Models (бесплатно для всех пользователей GitHub)
@@ -284,16 +283,27 @@ class AssistantBrain:
                 base_url = "https://openrouter.ai/api/v1"
                 print(f"[Brain] Распознан ключ OpenRouter! (Модель: {model})")
 
+            http_client = None
+            if config.AI_PROXY:
+                try:
+                    import httpx
+                    http_client = httpx.Client(proxy=config.AI_PROXY)
+                    print(f"[Brain] Задействован локальный прокси: {config.AI_PROXY}")
+                except Exception as ex:
+                    print(f"[Brain Warning] Не удалось подключить прокси для httpx: {ex}")
+
             try:
                 self.openai_client = OpenAI(
                     api_key=key,
                     base_url=base_url,
+                    http_client=http_client,
                 )
                 self.active_openai_model = model
                 print(f"[Brain] Подключен безрегиональный ИИ ({model}) через {base_url}")
             except Exception as e:
                 print(f"[Brain Error] Не удалось инициализировать OpenAI/Groq: {e}")
                 self.openai_client = None
+
 
 
         # 2. Google Gemini
