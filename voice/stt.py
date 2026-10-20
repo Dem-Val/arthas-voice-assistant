@@ -24,8 +24,11 @@ import config
 # Словарь популярных имен и их частых фонетических искажений при распознавании Google STT
 KNOWN_NAME_ALIASES = {
     "артас": [
-        "артас", "артес", "ортас", "артос", "атас", "атлас", "арт",
-        "артаса", "артасу", "артасом", "artas", "arthas", "аркас", "артус"
+        "артас", "артес", "ортас", "артос", "орто", "арто", "орта", "арта",
+        "атас", "атлас", "арт", "орт", "артис", "ортис", "артус", "ортус",
+        "артаса", "артасу", "артасом", "artas", "arthas", "ortas", "orthas", "orto", "arto",
+        "аркас", "артур", "артем", "артём", "артек", "артаз", "ортаз", "артоз",
+        "бартос", "вартас", "мартас", "а то", "отрас", "артэс", "ортэс"
     ],
     "лина": [
         "лина", "алина", "элина", "лину", "лине", "линой", "линочка",
@@ -112,17 +115,24 @@ class SpeechRecognizer:
                 cmd_tokens = tokens[:i] + tokens[i+1:]
                 return True, " ".join(cmd_tokens).strip()
 
-        # 2. Нечеткая проверка первых 3 токенов (Levenshtein / RapidFuzz)
+        # 2. Проверка универсального паттерна для имени Артас (орто, арто, ортас, артес, орта и т.д.)
+        arthas_pattern = r"^(?:[ао]рт(?:[аоеиуэы][сз]?|[а-яё]{1,2})?|[ао]тас|arthas|artas|ortas|orto|arto)$"
+        for i, token in enumerate(tokens[:3]):
+            if re.match(arthas_pattern, token, re.IGNORECASE):
+                cmd_tokens = tokens[:i] + tokens[i+1:]
+                return True, " ".join(cmd_tokens).strip()
+
+        # 3. Нечеткая проверка первых 3 токенов (Levenshtein / RapidFuzz)
         # Обрабатывает искажения: "алина" вместо "лина", "артес/ортас" вместо "артас"
         if fuzz:
             for i, token in enumerate(tokens[:3]):
                 for alias in self.aliases:
                     score = fuzz.ratio(token, alias)
-                    if score >= 75:
+                    if score >= 68:
                         cmd_tokens = tokens[:i] + tokens[i+1:]
                         return True, " ".join(cmd_tokens).strip()
 
-        # 3. Регулярное выражение по корню
+        # 4. Регулярное выражение по корню
         wake_root = self.wake_name[:4] if len(self.wake_name) >= 4 else self.wake_name
         pattern = rf"\b{wake_root}[а-яёa-z]*\b"
         match = re.search(pattern, clean_text)
