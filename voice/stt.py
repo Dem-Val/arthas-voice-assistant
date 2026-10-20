@@ -24,9 +24,10 @@ class SpeechRecognizer:
         # Варианты обращения к ассистенту
         self.wake_patterns = [
             rf"\b{self.wake_name}\b",
-            rf"\b{self.wake_name}[а-яё]*\b",  # гладиатор, гладиатора, гладиатору
-            r"\bглад\b",
-            r"\bgladiator\b",
+            rf"\b{self.wake_name}[а-яё]*\b",  # артас, артаса, артасу, артасом
+            r"\bарт\b",
+            r"\barthas\b",
+            r"\bartas\b",
         ]
         self.recognizer = None
         self.microphone = None
@@ -61,7 +62,7 @@ class SpeechRecognizer:
         """
         Проверяет, содержит ли фраза имя помощника.
         Возвращает (нашли_ли_имя, оставшаяся_команда).
-        Например: 'Гладиатор открой браузер' -> (True, 'открой браузер').
+        Например: 'Артас открой браузер' -> (True, 'открой браузер').
         """
         clean_text = text.lower().strip()
         for pattern in self.wake_patterns:

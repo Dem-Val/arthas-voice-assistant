@@ -33,7 +33,7 @@ def test_cli():
                 break
 
             response = brain.process_user_input(user_input)
-            print(f"\nГладиатор > {response}")
+            print(f"\nАртас > {response}")
             tts.speak(response)
         except KeyboardInterrupt:
             break

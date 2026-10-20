@@ -12,7 +12,7 @@ else:
 load_dotenv(BASE_DIR / ".env")
 
 # Основные настройки ассистента
-ASSISTANT_NAME = os.getenv("ASSISTANT_NAME", "гладиатор").strip().lower()
+ASSISTANT_NAME = os.getenv("ASSISTANT_NAME", "артас").strip().lower()
 
 # Настройки ИИ (Google Gemini)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
@@ -28,7 +28,7 @@ OPENAI_MODEL = os.getenv("OPENAI_MODEL", "google/gemini-2.0-flash-exp:free").str
 # Голосовой ответ (TTS) - временно отключен для отладки
 ENABLE_TTS = os.getenv("ENABLE_TTS", "false").strip().lower() in ("true", "1", "yes")
 
-# Голосовые настройки (мужской голос Дмитрий для Гладиатора)
+# Голосовые настройки (мужской голос Дмитрий для Артаса)
 VOICE_NAME = os.getenv("VOICE_NAME", "ru-RU-DmitryNeural").strip()
 VOICE_RATE = os.getenv("VOICE_RATE", "+0%").strip()
 VOICE_PITCH = os.getenv("VOICE_PITCH", "+0Hz").strip()

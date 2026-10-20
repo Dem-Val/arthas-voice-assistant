@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 > nul
-title Гладиатор - Голосовой ИИ-Помощник
+title Артас - Голосовой ИИ-Помощник
 cd /d "%~dp0"
 
 if not exist ".venv\Scripts\python.exe" (
@@ -9,7 +9,7 @@ if not exist ".venv\Scripts\python.exe" (
     exit /b
 )
 
-echo Запуск голосового помощника Гладиатор...
+echo Запуск голосового помощника Артас...
 ".venv\Scripts\python.exe" main.py
 if errorlevel 1 (
     echo.

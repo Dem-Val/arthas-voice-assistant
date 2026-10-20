@@ -90,10 +90,10 @@ def run_voice_loop():
                 stt.play_wake_sound()
 
                 if command:
-                    # Пользователь сказал имя и команду сразу: "Гладиатор, открой стим"
+                    # Пользователь сказал имя и команду сразу: "Артас, открой стим"
                     process_command(command)
                 else:
-                    # Пользователь сказал только имя: "Гладиатор"
+                    # Пользователь сказал только имя: "Артас"
                     tts.speak("Слушаю вас!", block=True)
                     # Ждем саму команду
                     next_phrase = stt.listen_phrase(timeout=7, phrase_time_limit=10)

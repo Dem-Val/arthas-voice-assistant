@@ -17,7 +17,7 @@ from tools.system_control import SystemControl
 from tools.web_tools import web_tools
 
 
-# Системный промпт Гладиатора
+# Системный промпт Артаса
 SYSTEM_INSTRUCTION = f"""
 Ты — {config.ASSISTANT_NAME.capitalize()}, мощный, умный и преданный голосовой помощник и интеллектуальный агент для операционной системы Windows.
 Ты управляешь компьютером, мгновенно выполняешь команды пользователя и отвечаешь на вопросы уверенным, лаконичным тоном.
