@@ -341,19 +341,16 @@ class AssistantBrain:
         if fast_result is not None:
             return fast_result
 
-        # 2. Приоритет OpenRouter / OpenAI (без VPN и региональных блоков)
-        if self.openai_client and (config.AI_PROVIDER == "openrouter" or not self.gemini_chat):
-            return self._process_openai(user_text)
-
-        # 3. Google Gemini
-        if self.gemini_chat:
-            return self._process_gemini(user_text)
-
-        # 4. Если оба не настроены
+        # 2. Приоритет Groq / OpenRouter / OpenAI (без VPN и региональных блоков)
         if self.openai_client:
             return self._process_openai(user_text)
 
-        return "Ключ ИИ не настроен. Укажите OPENAI_API_KEY в файле .env (для OpenRouter/DeepSeek без VPN) или GEMINI_API_KEY."
+        # 3. Google Gemini (только если нет OpenAI/Groq клиента)
+        if self.gemini_chat:
+            return self._process_gemini(user_text)
+
+        return "Ключ ИИ не настроен. Укажите OPENAI_API_KEY (Groq/OpenRouter) или GEMINI_API_KEY в файле .env."
+
 
     def _process_openai(self, user_text: str) -> str:
         """Обработка через OpenRouter / Groq / OpenAI (DeepSeek V3, Llama 3.3)."""

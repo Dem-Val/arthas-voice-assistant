@@ -23,10 +23,11 @@ GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash").strip()
 GEMINI_PROXY = os.getenv("GEMINI_PROXY", "").strip() or os.getenv("HTTPS_PROXY", "").strip() or os.getenv("HTTP_PROXY", "").strip()
 GEMINI_BASE_URL = os.getenv("GEMINI_BASE_URL", "").strip()
 
-# Настройки OpenRouter / Groq / OpenAI (бесплатный DeepSeek V3 без региональных ограничений)
+# Настройки OpenRouter / Groq / OpenAI (100% бесплатно без региональных ограничений)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
-OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://openrouter.ai/api/v1").strip()
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "deepseek/deepseek-chat:free").strip()
+OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.groq.com/openai/v1").strip()
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "qwen/qwen3.8-27b").strip()
+
 
 
 # Голосовой ответ (TTS) - временно отключен для отладки

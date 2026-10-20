@@ -187,9 +187,17 @@ class WindowsAppScanner:
     def _normalize_query(self, query: str) -> str:
         q = query.strip().lower()
         # Удаляем вводные слова
-        for word in ["запусти", "открой", "включи", "программу", "приложение", "плиз", "пожалуйста", "браузер"]:
+        for word in ["запусти", "открой", "включи", "вруби", "программу", "приложение", "плиз", "пожалуйста"]:
             q = re.sub(rf"\b{word}\b", "", q)
         q = q.strip(",.!? \t\n")
+
+        # Если остался только браузер - не удаляем его
+        if q in ["браузер", "browser", "интернет", "инет"]:
+            return "браузер"
+
+        # Если есть "браузер opera" или "браузер хром", убираем слово "браузер"
+        if " " in q and "браузер" in q:
+            q = re.sub(r"\bбраузер[а-я]*\b", "", q).strip(",.!? \t\n")
 
         # Проверяем полное совпадение с синонимами
         if q in APP_ALIASES:
@@ -222,6 +230,15 @@ class WindowsAppScanner:
         if not norm_query:
             return None
 
+        # Специальная обработка запроса "браузер": находим установленный браузер
+        if norm_query in ["браузер", "browser", "интернет", "инет"]:
+            for b in ["opera", "chrome", "yandex", "firefox", "edge"]:
+                for name, path in self.apps_cache.items():
+                    if b in name:
+                        return name, path
+            # Системный браузер Windows Edge по умолчанию
+            return "браузер", "msedge.exe"
+
         # 1. Прямое совпадение
         if norm_query in self.apps_cache:
             return norm_query, self.apps_cache[norm_query]
@@ -231,6 +248,7 @@ class WindowsAppScanner:
             tokens = [t.strip() for t in re.split(r"[\s\-_]+", app_name)]
             if norm_query in tokens or any(norm_query == t for t in tokens):
                 return app_name, app_path
+
 
         # 3. Поиск подстроки
         for app_name, app_path in self.apps_cache.items():
