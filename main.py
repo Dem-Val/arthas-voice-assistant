@@ -18,43 +18,69 @@ from agent.brain import brain
 
 
 def ensure_api_key():
-    """Проверяет наличие API-ключа Gemini. Если нет — запрашивает у пользователя и сохраняет."""
+    """Проверяет наличие API-ключа (OpenRouter без VPN или Gemini). Если нет — запрашивает у пользователя."""
     env_file = config.BASE_DIR / ".env"
-    if not config.GEMINI_API_KEY or config.GEMINI_API_KEY == "your_gemini_api_key_here":
+    has_key = bool(config.OPENAI_API_KEY or (config.GEMINI_API_KEY and config.GEMINI_API_KEY != "your_gemini_api_key_here"))
+
+    if not has_key:
         print("\n" + "=" * 60)
-        print("  🔑 ТРЕБУЕТСЯ КЛЮЧ GOOGLE GEMINI API")
-        print("  Получить бесплатно можно тут: https://aistudio.google.com/app/apikey")
+        print("  🔑 ТРЕБУЕТСЯ КЛЮЧ ИИ (БЕСПЛАТНО)")
         print("=" * 60)
-        key = input("👉 Введите ваш Gemini API Key: ").strip()
+        print("  1. OpenRouter (Рекомендуется для РФ, без VPN):")
+        print("     👉 Получить ключ: https://openrouter.ai/keys (начинается на sk-or-...)")
+        print("  2. Google Gemini API:")
+        print("     👉 Получить ключ: https://aistudio.google.com/app/apikey")
+        print("=" * 60)
+        key = input("👉 Введите ваш API Key (OpenRouter или Gemini): ").strip()
         if key:
-            config.GEMINI_API_KEY = key
-            # Записываем в .env
-            env_content = f"""# Google Gemini API Key
-GEMINI_API_KEY={key}
+            if key.startswith("sk-"):
+                config.OPENAI_API_KEY = key
+                config.AI_PROVIDER = "openrouter"
+                print("✅ Определен ключ OpenRouter (работает в РФ без VPN)!")
+            else:
+                config.GEMINI_API_KEY = key
+                print("✅ Определен ключ Google Gemini!")
+
+            env_content = f"""# Провайдер ИИ: "openrouter" (DeepSeek/Gemini без VPN) или "gemini"
+AI_PROVIDER={config.AI_PROVIDER}
+
+# OpenRouter (бесплатный DeepSeek V3 без VPN и ограничений)
+OPENAI_API_KEY={config.OPENAI_API_KEY}
+OPENAI_BASE_URL={config.OPENAI_BASE_URL}
+OPENAI_MODEL={config.OPENAI_MODEL}
+
+# Google Gemini API
+GEMINI_API_KEY={config.GEMINI_API_KEY}
+GEMINI_MODEL={config.GEMINI_MODEL}
+GEMINI_PROXY={config.GEMINI_PROXY}
+
+# Настройки ассистента
 ASSISTANT_NAME={config.ASSISTANT_NAME}
+ENABLE_TTS={str(config.ENABLE_TTS).lower()}
 VOICE_NAME={config.VOICE_NAME}
 VOICE_RATE={config.VOICE_RATE}
 VOICE_PITCH={config.VOICE_PITCH}
-GEMINI_MODEL={config.GEMINI_MODEL}
 """
             with open(env_file, "w", encoding="utf-8") as f:
                 f.write(env_content)
             brain.update_api_key(key)
-            print("✅ Ключ успешно сохранен в .env!\n")
+            print("✅ Настройки успешно сохранены в .env!\n")
         else:
-            print("⚠️ Ключ не введен. Функции ИИ будут недоступны до ввода ключа в .env.")
+            print("⚠️ Ключ не введен. Будут доступны только системные команды Fast-Path.\n")
 
 
 def print_banner():
     name = config.ASSISTANT_NAME.capitalize()
+    model_info = f"OpenRouter ({config.OPENAI_MODEL}) [Без VPN]" if config.OPENAI_API_KEY else f"Google Gemini ({config.GEMINI_MODEL})"
     print("=" * 60)
     print(f" ✨ ГОЛОСОВОЙ ИИ-ПОМОЩНИК «{name.upper()}» ДЛЯ WINDOWS ✨")
     print("=" * 60)
-    print(f" • Имя для активации: «{name}» (например: '{name}, открой хром')")
-    print(" • Модель ИИ:        Google Gemini (динамический поиск и действия)")
-    print(" • Голос озвучки:    Microsoft Neural (Edge-TTS)")
-    print(" • Для выхода:       нажмите Ctrl+C в этом окне")
+    print(f" • Имя для активации: «{name}» (например: '{name}, открой оперу')")
+    print(f" • Модель ИИ:        {model_info}")
+    print(f" • Мгновенный путь:  Fast-Path 0.1с (программы, звук, окна, медиа)")
+    print(f" • Для выхода:       нажмите Ctrl+C в этом окне")
     print("=" * 60 + "\n")
+
 
 
 def process_command(command_text: str):

@@ -14,16 +14,20 @@ load_dotenv(BASE_DIR / ".env")
 # Основные настройки ассистента
 ASSISTANT_NAME = os.getenv("ASSISTANT_NAME", "артас").strip().lower()
 
+# Выбор провайдера ИИ: "openrouter" (DeepSeek/Gemini без VPN) или "gemini" (прямой Google) или "groq"
+AI_PROVIDER = os.getenv("AI_PROVIDER", "openrouter" if os.getenv("OPENAI_API_KEY") else "gemini").strip().lower()
+
 # Настройки ИИ (Google Gemini)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash").strip()
 GEMINI_PROXY = os.getenv("GEMINI_PROXY", "").strip() or os.getenv("HTTPS_PROXY", "").strip() or os.getenv("HTTP_PROXY", "").strip()
 GEMINI_BASE_URL = os.getenv("GEMINI_BASE_URL", "").strip()
 
-# Альтернативный провайдер (OpenRouter / Groq / Любой OpenAI-совместимый)
+# Настройки OpenRouter / Groq / OpenAI (бесплатный DeepSeek V3 без региональных ограничений)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://openrouter.ai/api/v1").strip()
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "google/gemini-2.0-flash-exp:free").strip()
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "deepseek/deepseek-chat:free").strip()
+
 
 # Голосовой ответ (TTS) - временно отключен для отладки
 ENABLE_TTS = os.getenv("ENABLE_TTS", "false").strip().lower() in ("true", "1", "yes")

@@ -128,64 +128,280 @@ TOOL_FUNCTIONS: List[Callable] = [
 FUNCTIONS_MAP: Dict[str, Callable] = {fn.__name__: fn for fn in TOOL_FUNCTIONS}
 
 
+# Описание инструментов для OpenAI-совместимых провайдеров (OpenRouter / Groq / DeepSeek)
+OPENAI_TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "launch_application",
+            "description": "Ищет и открывает программу или приложение на компьютере по названию (например: 'телеграм', 'калькулятор', 'хром', 'стим', 'блокнот', 'опера').",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "app_name": {"type": "string", "description": "Название программы"}
+                },
+                "required": ["app_name"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_google",
+            "description": "Ищет информацию в интернете через браузер Google.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Поисковый запрос"}
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "play_youtube",
+            "description": "Включает песню, видео или музыку на YouTube в браузере.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Название видео или песни"}
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "set_volume_percent",
+            "description": "Устанавливает громкость звука системы от 0 до 100 процентов.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "percent": {"type": "integer", "description": "Громкость 0-100"}
+                },
+                "required": ["percent"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "change_volume",
+            "description": "Изменяет громкость звука на указанное число процентов (+15 или -15).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "delta": {"type": "integer", "description": "Дельта громкости"}
+                },
+                "required": ["delta"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "toggle_mute",
+            "description": "Выключает или включает звук на компьютере.",
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "minimize_windows",
+            "description": "Сворачивает все открытые окна и показывает рабочий стол.",
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "take_screenshot",
+            "description": "Делает снимок экрана (скриншот).",
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "lock_computer",
+            "description": "Блокирует экран компьютера.",
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "open_website",
+            "description": "Открывает веб-сайт по ссылке.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "url": {"type": "string", "description": "Ссылка"}
+                },
+                "required": ["url"],
+            },
+        },
+    },
+]
+
+
 class AssistantBrain:
-    """Мозг ассистента: Google Gemini с поддержкой прокси, VPN и альтернативных провайдеров."""
+    """Мозг ассистента: Двойной движок — OpenRouter (DeepSeek без VPN) и Google Gemini."""
 
     def __init__(self):
-        self.api_key = config.GEMINI_API_KEY
-        self.model_name = config.GEMINI_MODEL
-        self.client = None
-        self.chat = None
+        self.openai_client = None
+        self.openai_messages = [{"role": "system", "content": SYSTEM_INSTRUCTION}]
 
-        if self.api_key:
-            self._init_client()
+        self.gemini_client = None
+        self.gemini_chat = None
 
-    def _init_client(self):
-        try:
-            http_options = types.HttpOptions()
-            # Настройка прокси при наличии
-            if config.GEMINI_PROXY:
-                http_options.client_args = {"proxy": config.GEMINI_PROXY}
-                print(f"[Brain] Используется прокси для Gemini: {config.GEMINI_PROXY}")
-            if config.GEMINI_BASE_URL:
-                http_options.base_url = config.GEMINI_BASE_URL
+        self._init_providers()
 
-            self.client = genai.Client(api_key=self.api_key, http_options=http_options)
-            self.chat = self.client.chats.create(
-                model=self.model_name,
-                config=types.GenerateContentConfig(
-                    system_instruction=SYSTEM_INSTRUCTION,
-                    tools=TOOL_FUNCTIONS,
-                    temperature=0.7,
-                ),
-            )
-            print(f"[Brain] Мозг {config.ASSISTANT_NAME.capitalize()} (Gemini) успешно инициализирован.")
-        except Exception as e:
-            print(f"[Brain Error] Не удалось инициализировать Gemini: {e}")
-            self.client = None
+    def _init_providers(self):
+        # 1. OpenRouter / Groq / OpenAI-совместимый движок
+        if config.OPENAI_API_KEY and OpenAI:
+            try:
+                self.openai_client = OpenAI(
+                    api_key=config.OPENAI_API_KEY,
+                    base_url=config.OPENAI_BASE_URL,
+                )
+                print(f"[Brain] Подключен безрегиональный ИИ ({config.OPENAI_MODEL}) через {config.OPENAI_BASE_URL}")
+            except Exception as e:
+                print(f"[Brain Error] Не удалось инициализировать OpenAI/OpenRouter: {e}")
+                self.openai_client = None
+
+        # 2. Google Gemini
+        if config.GEMINI_API_KEY:
+            try:
+                http_options = types.HttpOptions()
+                if config.GEMINI_PROXY:
+                    http_options.client_args = {"proxy": config.GEMINI_PROXY}
+                if config.GEMINI_BASE_URL:
+                    http_options.base_url = config.GEMINI_BASE_URL
+
+                self.gemini_client = genai.Client(api_key=config.GEMINI_API_KEY, http_options=http_options)
+                self.gemini_chat = self.gemini_client.chats.create(
+                    model=config.GEMINI_MODEL,
+                    config=types.GenerateContentConfig(
+                        system_instruction=SYSTEM_INSTRUCTION,
+                        tools=TOOL_FUNCTIONS,
+                        temperature=0.7,
+                    ),
+                )
+                print(f"[Brain] Google Gemini инициализирован (Модель: {config.GEMINI_MODEL})")
+            except Exception as e:
+                print(f"[Brain Warning] Не удалось инициализировать Gemini: {e}")
+                self.gemini_client = None
+                self.gemini_chat = None
 
     def update_api_key(self, api_key: str):
-        self.api_key = api_key.strip()
-        self._init_client()
+        # Если ключ похож на OpenRouter (начинается на sk-or-) или OpenAI (sk-)
+        if api_key.startswith("sk-"):
+            config.OPENAI_API_KEY = api_key
+            config.AI_PROVIDER = "openrouter"
+        else:
+            config.GEMINI_API_KEY = api_key
+        self._init_providers()
 
     def process_user_input(self, user_text: str) -> str:
         """
         Обрабатывает фразу пользователя:
-        - Проверяет мгновенный Fast-Path (0.01-0.05 сек)
-        - При необходимости отправляет в ИИ Gemini
-        - Выполняет инструменты за один шаг без задержки
+        - 1. Мгновенный Fast-Path (0.05-0.10 сек) без нейросети
+        - 2. OpenRouter (DeepSeek/Gemini без ограничений региона) при наличии ключа
+        - 3. Google Gemini при наличии ключа
         """
-        # 1. Проверяем Fast-Path (мгновенный локальный ответ без задержки)
+        # 1. Fast-Path
         fast_result = fast_router.try_handle(user_text)
         if fast_result is not None:
             return fast_result
 
-        if not self.client or not self.chat:
-            return "Ключ Gemini API не настроен. Пожалуйста, укажите ваш GEMINI_API_KEY в файле .env."
+        # 2. Приоритет OpenRouter / OpenAI (без VPN и региональных блоков)
+        if self.openai_client and (config.AI_PROVIDER == "openrouter" or not self.gemini_chat):
+            return self._process_openai(user_text)
 
+        # 3. Google Gemini
+        if self.gemini_chat:
+            return self._process_gemini(user_text)
+
+        # 4. Если оба не настроены
+        if self.openai_client:
+            return self._process_openai(user_text)
+
+        return "Ключ ИИ не настроен. Укажите OPENAI_API_KEY в файле .env (для OpenRouter/DeepSeek без VPN) или GEMINI_API_KEY."
+
+    def _process_openai(self, user_text: str) -> str:
+        """Обработка через OpenRouter / Groq / OpenAI (DeepSeek V3, Llama 3.3)."""
         try:
             print(f"[User]: {user_text}")
-            response = self.chat.send_message(user_text)
+            self.openai_messages.append({"role": "user", "content": user_text})
+            # Ограничиваем историю диалога 12 сообщениями для экономии токенов
+            if len(self.openai_messages) > 13:
+                self.openai_messages = [self.openai_messages[0]] + self.openai_messages[-12:]
+
+            try:
+                response = self.openai_client.chat.completions.create(
+                    model=config.OPENAI_MODEL,
+                    messages=self.openai_messages,
+                    tools=OPENAI_TOOLS,
+                    tool_choice="auto",
+                    temperature=0.7,
+                )
+            except Exception:
+                # Если модель на бесплатном пуле не поддерживает tools schema, вызываем без tools
+                response = self.openai_client.chat.completions.create(
+                    model=config.OPENAI_MODEL,
+                    messages=self.openai_messages,
+                    temperature=0.7,
+                )
+
+            msg = response.choices[0].message
+
+            # Если нейросеть вызвала функцию
+            if hasattr(msg, "tool_calls") and msg.tool_calls:
+                tool_results = []
+                for tc in msg.tool_calls:
+                    fn_name = tc.function.name
+                    fn_args = {}
+                    try:
+                        fn_args = json.loads(tc.function.arguments) if tc.function.arguments else {}
+                    except Exception:
+                        pass
+
+                    print(f"[Tool Call] {fn_name}({fn_args})")
+                    if fn_name in FUNCTIONS_MAP:
+                        try:
+                            res = FUNCTIONS_MAP[fn_name](**fn_args)
+                        except Exception as ex:
+                            res = f"Ошибка: {ex}"
+                    else:
+                        res = f"Функция {fn_name} не найдена."
+
+                    print(f"[Tool Result] {res}")
+                    tool_results.append(str(res))
+
+                self.openai_messages.append(msg)
+                return " ".join(tool_results)
+
+            answer = msg.content or "Слушаюсь и повинуюсь!"
+            self.openai_messages.append({"role": "assistant", "content": answer})
+            return answer
+
+        except Exception as e:
+            print(f"[OpenAI/OpenRouter Error]: {e}")
+            if self.gemini_chat:
+                print("[Brain] Автоматическое переключение на резервный Gemini...")
+                return self._process_gemini(user_text)
+            return "Произошла ошибка при обращении к нейросети. Попробуйте еще раз."
+
+    def _process_gemini(self, user_text: str) -> str:
+        """Обработка через Google Gemini с одношаговым выполнением инструментов."""
+        try:
+            print(f"[User]: {user_text}")
+            response = self.gemini_chat.send_message(user_text)
 
             # Выполнение Function Calling
             if response.function_calls:
@@ -213,38 +429,35 @@ class AssistantBrain:
                         )
                     )
 
-                # Синхронизируем контекст диалога в фоновом потоке, не блокируя ответ пользователю
+                # Фоновая синхронизация контекста
                 import threading
                 def _sync_chat():
                     try:
-                        self.chat.send_message(function_responses)
+                        self.gemini_chat.send_message(function_responses)
                     except Exception:
                         pass
                 threading.Thread(target=_sync_chat, daemon=True).start()
 
-                # Мгновенно отдаем пользователю подтверждение от выполненного инструмента
                 return " ".join(tool_results)
 
             return response.text or "Слушаюсь и повинуюсь!"
-
 
         except Exception as e:
             err_msg = str(e)
             print(f"[Brain Process Error]: {err_msg}")
 
-            # Проверка на региональную блокировку Google (User location is not supported)
             if "User location is not supported" in err_msg or "FAILED_PRECONDITION" in err_msg:
                 print("\n" + "!" * 60)
                 print(" ⚠️  РЕГИОНАЛЬНОЕ ОГРАНИЧЕНИЕ GOOGLE GEMINI:")
                 print(" Google блокирует прямые запросы к AI Studio с IP-адресов РФ.")
-                print(" Решения:")
-                print("  1. Включите любой системный VPN на вашем компьютере (Amnezia, WireGuard, VLESS, Outline и др.)")
-                print("  2. ИЛИ пропишите локальный прокси в файле .env: GEMINI_PROXY=http://127.0.0.1:10809")
-                print("  3. ИЛИ используйте OpenRouter (работает в РФ без VPN): укажите OPENAI_API_KEY в .env")
+                print(" Решение без VPN:")
+                print("  Укажите бесплатный ключ OpenRouter (работает в РФ напрямую):")
+                print("  OPENAI_API_KEY=sk-or-v1-... в файле .env")
                 print("!" * 60 + "\n")
-                return "Google ограничивает доступ из вашего региона. Пожалуйста, включите VPN на компьютере или настройте прокси в файле настроек."
+                return "Google ограничивает доступ из вашего региона. Подключите бесплатный OpenRouter (без VPN) в настройках .env."
 
             return "Произошла ошибка при обработке запроса. Попробуйте еще раз."
 
 
 brain = AssistantBrain()
+
