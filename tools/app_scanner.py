@@ -32,28 +32,97 @@ BUILTIN_APPS: Dict[str, str] = {
 
 # Синонимы и сленг для популярных программ
 APP_ALIASES: Dict[str, str] = {
+    # Браузеры
+    "опера": "opera",
+    "оперу": "opera",
+    "оперы": "opera",
+    "опере": "opera",
+    "opera": "opera",
+    "хром": "chrome",
+    "хрома": "chrome",
+    "хроме": "chrome",
+    "гугл": "chrome",
+    "гугл хром": "chrome",
+    "google chrome": "chrome",
+    "яндекс": "yandex",
+    "яндекса": "yandex",
+    "яндекс браузер": "yandex",
+    "yandex": "yandex",
+    "эдж": "edge",
+    "эджа": "edge",
+    "edge": "edge",
+    "мазила": "firefox",
+    "файрфокс": "firefox",
+    "фаерфокс": "firefox",
+    "firefox": "firefox",
+
+    # Мессенджеры и связь
     "телега": "telegram",
     "телегу": "telegram",
     "телеграм": "telegram",
-    "хром": "chrome",
-    "гугл": "chrome",
-    "гугл хром": "google chrome",
-    "яндекс": "yandex",
-    "яндекс браузер": "yandex",
-    "опера": "opera",
-    "opera": "opera",
-    "стим": "steam",
+    "телеграмм": "telegram",
+    "телеграме": "telegram",
+    "тг": "telegram",
+    "telegram": "telegram",
     "дискорд": "discord",
+    "дискорда": "discord",
+    "дискорде": "discord",
+    "дс": "discord",
+    "discord": "discord",
+    "ватсап": "whatsapp",
+    "вацап": "whatsapp",
+    "whatsapp": "whatsapp",
+
+    # Игры и платформы
+    "стим": "steam",
+    "стима": "steam",
+    "стиме": "steam",
+    "steam": "steam",
+    "эпик": "epic games",
+    "эпик геймс": "epic games",
+
+    # Музыка и медиа
     "музыка": "spotify",
     "спотифай": "spotify",
+    "спотифая": "spotify",
+    "споти": "spotify",
+    "spotify": "spotify",
+    "аимп": "aimp",
+    "vlc": "vlc",
+
+    # Разработка и редакторы
+    "пайчарм": "pycharm",
+    "пичарм": "pycharm",
+    "пай чарм": "pycharm",
+    "чарм": "pycharm",
+    "pycharm": "pycharm",
     "вс код": "code",
-    "код": "code",
+    "вскод": "code",
     "vs code": "code",
+    "код": "code",
+    "вижуал студио": "visual studio",
+    "нотпад": "notepad++",
+    "ноутпад": "notepad++",
+    "notepad++": "notepad++",
+
+    # Офис
     "ворд": "word",
+    "ворда": "word",
+    "word": "word",
     "эксель": "excel",
+    "экселя": "excel",
+    "ексель": "excel",
+    "excel": "excel",
     "поверпоинт": "powerpoint",
+    "паверпоинт": "powerpoint",
+    "презентация": "powerpoint",
+    "powerpoint": "powerpoint",
+
+    # Прочее
     "торрент": "torrent",
-    "эдж": "edge",
+    "торрента": "torrent",
+    "qbittorrent": "qbittorrent",
+    "utorrent": "utorrent",
 }
 
 
@@ -118,13 +187,31 @@ class WindowsAppScanner:
     def _normalize_query(self, query: str) -> str:
         q = query.strip().lower()
         # Удаляем вводные слова
-        for word in ["запусти", "открой", "включи", "программу", "приложение", "плиз", "пожалуйста"]:
+        for word in ["запусти", "открой", "включи", "программу", "приложение", "плиз", "пожалуйста", "браузер"]:
             q = re.sub(rf"\b{word}\b", "", q)
-        q = q.strip()
-        # Проверяем синонимы
+        q = q.strip(",.!? \t\n")
+
+        # Проверяем полное совпадение с синонимами
         if q in APP_ALIASES:
-            q = APP_ALIASES[q]
-        return q
+            return APP_ALIASES[q]
+
+        # Заменяем токены по синонимам и стеммингу
+        tokens = q.split()
+        mapped_tokens = []
+        for t in tokens:
+            if t in APP_ALIASES:
+                mapped_tokens.append(APP_ALIASES[t])
+            else:
+                # Базовый стемминг русских окончаний существительных
+                stemmed = t
+                if len(t) > 3:
+                    if t.endswith(("у", "ю")):
+                        stemmed = t[:-1] + "а"
+                    elif t.endswith(("а", "я", "е", "ом", "ем")):
+                        stemmed = t[:-1] if not t.endswith(("ом", "ем")) else t[:-2]
+                mapped_tokens.append(APP_ALIASES.get(stemmed, t))
+
+        return " ".join(mapped_tokens).strip()
 
     def find_app(self, query: str) -> Optional[Tuple[str, str]]:
         """
@@ -142,20 +229,25 @@ class WindowsAppScanner:
         # 2. Поиск по отдельным словам в названиях (например "opera" в "браузер opera")
         for app_name, app_path in self.apps_cache.items():
             tokens = [t.strip() for t in re.split(r"[\s\-_]+", app_name)]
-            if norm_query in tokens:
+            if norm_query in tokens or any(norm_query == t for t in tokens):
                 return app_name, app_path
 
         # 3. Поиск подстроки
         for app_name, app_path in self.apps_cache.items():
-            if norm_query in app_name:
+            if norm_query in app_name or app_name in norm_query:
                 return app_name, app_path
 
-        # 4. Нечеткий поиск (Fuzzy Matching)
+        # 4. Нечеткий поиск (Fuzzy Matching через RapidFuzz)
         if fuzz and self.apps_cache:
             names = list(self.apps_cache.keys())
             best_match, score, _ = process.extractOne(norm_query, names, scorer=fuzz.token_set_ratio)
             if score >= 65:
                 return best_match, self.apps_cache[best_match]
+
+            # Дополнительная попытка по token_sort_ratio
+            best_sort, sort_score, _ = process.extractOne(norm_query, names, scorer=fuzz.token_sort_ratio)
+            if sort_score >= 65:
+                return best_sort, self.apps_cache[best_sort]
 
         return None
 
@@ -166,12 +258,15 @@ class WindowsAppScanner:
         """
         result = self.find_app(query)
         if not result:
-            # Попытка прямого запуска через shell Windows (например, если сказали calc или cmd)
-            try:
-                subprocess.Popen(query.strip(), shell=True)
-                return f"Открываю: {query}"
-            except Exception:
-                return f"Не удалось найти приложение '{query}'. Проверьте, установлено ли оно."
+            # Для чистых латинских системных команд (calc, cmd, notepad, wt)
+            q_clean = query.strip().lower()
+            if q_clean.isascii() and len(q_clean.split()) == 1:
+                try:
+                    subprocess.Popen(q_clean, shell=True)
+                    return f"Открываю: {query}"
+                except Exception:
+                    pass
+            return f"Не удалось найти приложение '{query}'. Проверьте, установлено ли оно."
 
         app_name, app_path = result
         try:
@@ -188,3 +283,4 @@ class WindowsAppScanner:
 
 # Синглтон для повторного использования
 app_scanner = WindowsAppScanner()
+

@@ -11,6 +11,7 @@ except ImportError:
     OpenAI = None
 
 import config
+from agent.fast_path import fast_router
 from tools.app_scanner import app_scanner
 from tools.file_search import file_search
 from tools.system_control import SystemControl
@@ -170,10 +171,15 @@ class AssistantBrain:
     def process_user_input(self, user_text: str) -> str:
         """
         Обрабатывает фразу пользователя:
-        - Отправляет в ИИ
-        - Выполняет вызванные инструменты
-        - Возвращает финальный голосовой ответ
+        - Проверяет мгновенный Fast-Path (0.01-0.05 сек)
+        - При необходимости отправляет в ИИ Gemini
+        - Выполняет инструменты за один шаг без задержки
         """
+        # 1. Проверяем Fast-Path (мгновенный локальный ответ без задержки)
+        fast_result = fast_router.try_handle(user_text)
+        if fast_result is not None:
+            return fast_result
+
         if not self.client or not self.chat:
             return "Ключ Gemini API не настроен. Пожалуйста, укажите ваш GEMINI_API_KEY в файле .env."
 
@@ -182,7 +188,8 @@ class AssistantBrain:
             response = self.chat.send_message(user_text)
 
             # Выполнение Function Calling
-            while response.function_calls:
+            if response.function_calls:
+                tool_results = []
                 function_responses = []
                 for call in response.function_calls:
                     fn_name = call.name
@@ -198,6 +205,7 @@ class AssistantBrain:
                         result = f"Функция {fn_name} не найдена."
 
                     print(f"[Tool Result] {result}")
+                    tool_results.append(str(result))
                     function_responses.append(
                         types.Part.from_function_response(
                             name=fn_name,
@@ -205,9 +213,20 @@ class AssistantBrain:
                         )
                     )
 
-                response = self.chat.send_message(function_responses)
+                # Синхронизируем контекст диалога в фоновом потоке, не блокируя ответ пользователю
+                import threading
+                def _sync_chat():
+                    try:
+                        self.chat.send_message(function_responses)
+                    except Exception:
+                        pass
+                threading.Thread(target=_sync_chat, daemon=True).start()
+
+                # Мгновенно отдаем пользователю подтверждение от выполненного инструмента
+                return " ".join(tool_results)
 
             return response.text or "Слушаюсь и повинуюсь!"
+
 
         except Exception as e:
             err_msg = str(e)

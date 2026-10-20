@@ -4,6 +4,7 @@ from typing import Optional
 
 try:
     import pyautogui
+    pyautogui.FAILSAFE = False
 except ImportError:
     pyautogui = None
 
@@ -100,7 +101,7 @@ class SystemControl:
         """Сворачивает все окна (показывает рабочий стол)."""
         if pyautogui:
             pyautogui.hotkey("win", "d")
-            return "Свернула все окна."
+            return "Свернул все окна."
         return "Окна свернуты."
 
     @staticmethod
