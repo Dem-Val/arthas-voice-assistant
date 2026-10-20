@@ -1,5 +1,7 @@
 import os
+import time
 import subprocess
+from pathlib import Path
 from typing import Optional
 
 try:
@@ -7,6 +9,11 @@ try:
     pyautogui.FAILSAFE = False
 except ImportError:
     pyautogui = None
+
+try:
+    import pyperclip
+except ImportError:
+    pyperclip = None
 
 try:
     from ctypes import cast, POINTER
@@ -174,4 +181,153 @@ class SystemControl:
             pyautogui.press("f5")
             return "Страница обновлена."
         return "Команда отправлена."
+
+    @staticmethod
+    def browser_search_or_type(query: str, press_enter: bool = True) -> str:
+        """
+        Фокусирует адресную строку / строку поиска в браузере (Ctrl+L),
+        вводит текст запроса или ссылки и при необходимости нажимает Enter.
+        """
+        if not pyautogui:
+            return "Управление окнами недоступно."
+        try:
+            pyautogui.hotkey("ctrl", "l")
+            time.sleep(0.12)
+            if pyperclip:
+                pyperclip.copy(query)
+                pyautogui.hotkey("ctrl", "v")
+            else:
+                pyautogui.write(query)
+            if press_enter:
+                time.sleep(0.1)
+                pyautogui.press("enter")
+            return f"Ввел в строку браузера: {query}"
+        except Exception as e:
+            return f"Ошибка при вводе в браузер: {e}"
+
+    @staticmethod
+    def type_text(text: str, press_enter: bool = False) -> str:
+        """
+        Вводит / печатает указанный текст в активное поле или окно (с поддержкой русского языка).
+        """
+        if not pyautogui:
+            return "Ввод текста недоступен."
+        try:
+            if pyperclip:
+                pyperclip.copy(text)
+                pyautogui.hotkey("ctrl", "v")
+            else:
+                pyautogui.write(text)
+            if press_enter:
+                time.sleep(0.08)
+                pyautogui.press("enter")
+            return f"Напечатал: {text}"
+        except Exception as e:
+            return f"Ошибка при вводе текста: {e}"
+
+    @staticmethod
+    def press_key(key: str) -> str:
+        """
+        Нажимает клавишу на клавиатуре (enter, space, backspace, escape, tab, up, down, etc.).
+        """
+        if not pyautogui:
+            return "Клавиатура недоступна."
+        key_map = {
+            "энтер": "enter",
+            "ввод": "enter",
+            "пробел": "space",
+            "эскейп": "escape",
+            "ескейп": "escape",
+            "esc": "escape",
+            "стереть": "backspace",
+            "удали": "backspace",
+            "бэкспейс": "backspace",
+            "бекспейс": "backspace",
+            "таб": "tab",
+            "стрелка вверх": "up",
+            "вверх": "up",
+            "стрелка вниз": "down",
+            "вниз": "down",
+            "стрелка влево": "left",
+            "влево": "left",
+            "стрелка вправо": "right",
+            "вправо": "right",
+            "удалить": "delete",
+            "экран": "f11",
+            "полный экран": "f11",
+        }
+        clean = key.lower().strip()
+        k = key_map.get(clean, clean)
+        try:
+            pyautogui.press(k)
+            return f"Нажал клавишу {key}."
+        except Exception as e:
+            return f"Не удалось нажать клавишу: {e}"
+
+    @staticmethod
+    def press_hotkey(hotkey: str) -> str:
+        """
+        Нажимает комбинацию клавиш (например: ctrl+c, ctrl+v, ctrl+a, ctrl+z, alt+f4, win+d, win+tab).
+        """
+        if not pyautogui:
+            return "Клавиатура недоступна."
+        try:
+            keys = [k.strip().lower() for k in hotkey.replace("-", "+").split("+")]
+            pyautogui.hotkey(*keys)
+            return f"Нажал комбинацию {' + '.join(keys)}."
+        except Exception as e:
+            return f"Ошибка при нажатии комбинации: {e}"
+
+    @staticmethod
+    def scroll_screen(direction: str = "down", amount: int = 5) -> str:
+        """
+        Прокручивает страницу или окно вверх или вниз.
+        """
+        if not pyautogui:
+            return "Мышь недоступна."
+        try:
+            is_down = direction.lower() in ["down", "вниз", "ниже"]
+            clicks = -abs(amount) * 120 if is_down else abs(amount) * 120
+            pyautogui.scroll(clicks)
+            return f"Прокрутил страницу {'вниз' if is_down else 'вверх'}."
+        except Exception as e:
+            return f"Ошибка прокрутки: {e}"
+
+    @staticmethod
+    def mouse_click(button: str = "left", double: bool = False) -> str:
+        """
+        Выполняет клик мыши (левый, правый, двойной).
+        """
+        if not pyautogui:
+            return "Мышь недоступна."
+        try:
+            btn = "right" if "прав" in button.lower() else "left"
+            if double:
+                pyautogui.doubleClick(button=btn)
+                return "Двойной клик выполнен."
+            pyautogui.click(button=btn)
+            return "Клик мыши выполнен."
+        except Exception as e:
+            return f"Ошибка клика: {e}"
+
+    @staticmethod
+    def close_active_window() -> str:
+        """
+        Закрывает текущее активное окно (Alt+F4).
+        """
+        if pyautogui:
+            pyautogui.hotkey("alt", "f4")
+            return "Закрыл активное окно."
+        return "Команда отправлена."
+
+    @staticmethod
+    def switch_window() -> str:
+        """
+        Переключает активное окно (Alt+Tab).
+        """
+        if pyautogui:
+            pyautogui.hotkey("alt", "tab")
+            return "Переключил окно."
+        return "Команда отправлена."
+
 

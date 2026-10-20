@@ -20,21 +20,86 @@ from tools.web_tools import web_tools
 
 # Системный промпт Артаса
 SYSTEM_INSTRUCTION = f"""
-Ты — {config.ASSISTANT_NAME.capitalize()}, мощный, умный и преданный голосовой помощник и интеллектуальный агент для операционной системы Windows.
-Ты управляешь компьютером, мгновенно выполняешь команды пользователя и отвечаешь на вопросы уверенным, лаконичным тоном.
+Ты — {config.ASSISTANT_NAME.capitalize()}, мощный, умный голосовой помощник и оператор операционной системы Windows.
+Ты напрямую управляешь компьютером пользователя, выполняешь действия в приложениях, браузере и системе, а также отвечаешь на любые вопросы.
 
-ПРАВИЛА ПОВЕДЕНИЯ:
-1. Если пользователь просит выполнить системное действие (открыть программу, найти файл, изменить звук, открыть сайт, включить музыку, свернуть окна, заблокировать ПК), ТЫ ОБЯЗАН вызвать подходящую функцию (tool).
-2. Пользователь может говорить разговорно (например: "открой телегу", "выруби звук", "сделай потише", "вруби на ютубе музыку", "найди файл диплома"). Распознавай суть и выбирай правильный инструмент.
-3. Голосовой ответ должен быть кратким, живым и естественным (1-2 коротких предложения), так как он будет озвучиваться вслух. Никаких длинных монологов без просьбы.
-4. После вызова инструмента коротко подтверди выполнение пользователю.
+ПРАВИЛА И ИНСТРУКЦИИ:
+1. Если пользователь просит выполнить системное действие, ТЫ ОБЯЗАН вызвать подходящую функцию (tool):
+   - Открыть браузер или программу: launch_application
+   - Написать в строку поиска браузера / найти что-то в открытом браузере: browser_search_or_type
+   - Напечатать произвольный текст в активное поле или окно: type_text
+   - Нажать энтер, пробел, стереть (бэкспейс), эскейп, таб: press_key
+   - Нажать комбинацию клавиш: press_hotkey
+   - Новая вкладка браузера / закрыть вкладку: new_browser_tab / close_browser_tab
+   - Закрыть окно: close_active_window
+   - Прокрутить страницу вниз или вверх: scroll_screen
+   - Изменить громкость звука: set_volume_percent, change_volume, toggle_mute
+   - Найти файл: open_file, show_file_in_folder
+   - Поиск в Google / YouTube: search_google, play_youtube
+2. Понимай контекст диалога: если перед этим открыли браузер или окно, а теперь просят "напиши там ютуб" или "введи в строку поиска" — вызывай browser_search_or_type или type_text.
+3. Голосовой ответ должен быть кратким (1 короткое предложение), так как он озвучивается вслух.
 """
 
 
 # Определение системных инструментов
 def launch_application(app_name: str) -> str:
-    """Ищет и открывает программу или приложение на компьютере по названию (например: 'телеграм', 'калькулятор', 'хром', 'стим', 'блокнот', 'опера')."""
+    """Ищет и открывает программу или приложение на компьютере по названию (например: 'телеграм', 'калькулятор', 'хром', 'стим', 'блокнот', 'опера', 'браузер')."""
     return app_scanner.launch(app_name)
+
+
+def browser_search_or_type(query: str, press_enter: bool = True) -> str:
+    """Фокусирует строку поиска браузера (Ctrl+L), вводит поисковый запрос или URL и нажимает Enter. Используй, если пользователь просит написать в строку поиска, найти что-то в открытом браузере или ввести адрес сайта."""
+    return SystemControl.browser_search_or_type(query, press_enter)
+
+
+def type_text(text: str, press_enter: bool = False) -> str:
+    """Печатает или вставляет произвольный текст в текущее активное текстовое поле или окно (с поддержкой русского языка)."""
+    return SystemControl.type_text(text, press_enter)
+
+
+def press_key(key: str) -> str:
+    """Нажимает клавишу на клавиатуре (например: enter, space, backspace, escape, tab, up, down, f11, delete)."""
+    return SystemControl.press_key(key)
+
+
+def press_hotkey(hotkey: str) -> str:
+    """Нажимает комбинацию клавиш (например: ctrl+c, ctrl+v, ctrl+a, ctrl+z, alt+f4, win+d, win+tab)."""
+    return SystemControl.press_hotkey(hotkey)
+
+
+def scroll_screen(direction: str = "down", amount: int = 5) -> str:
+    """Прокручивает активное окно или веб-страницу вверх или вниз (direction: 'down' или 'up')."""
+    return SystemControl.scroll_screen(direction, amount)
+
+
+def mouse_click(button: str = "left", double: bool = False) -> str:
+    """Выполняет клик мыши (левый, правый или двойной)."""
+    return SystemControl.mouse_click(button, double)
+
+
+def close_active_window() -> str:
+    """Закрывает текущее активное окно программы (Alt+F4)."""
+    return SystemControl.close_active_window()
+
+
+def switch_window() -> str:
+    """Переключает активное окно на другое (Alt+Tab)."""
+    return SystemControl.switch_window()
+
+
+def new_browser_tab() -> str:
+    """Открывает новую вкладку в браузере (Ctrl+T)."""
+    return SystemControl.new_browser_tab()
+
+
+def close_browser_tab() -> str:
+    """Закрывает текущую вкладку в браузере (Ctrl+W)."""
+    return SystemControl.close_browser_tab()
+
+
+def reload_page() -> str:
+    """Обновляет страницу в браузере (F5)."""
+    return SystemControl.reload_page()
 
 
 def open_file(filename: str) -> str:
@@ -109,6 +174,17 @@ def play_youtube(query: str) -> str:
 
 TOOL_FUNCTIONS: List[Callable] = [
     launch_application,
+    browser_search_or_type,
+    type_text,
+    press_key,
+    press_hotkey,
+    scroll_screen,
+    mouse_click,
+    close_active_window,
+    switch_window,
+    new_browser_tab,
+    close_browser_tab,
+    reload_page,
     open_file,
     show_file_in_folder,
     set_volume_percent,
@@ -243,6 +319,146 @@ OPENAI_TOOLS = [
                     "url": {"type": "string", "description": "Ссылка"}
                 },
                 "required": ["url"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "browser_search_or_type",
+            "description": "Фокусирует адресную строку/строку поиска браузера (Ctrl+L), вводит поисковый запрос или URL и нажимает Enter.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Текст запроса для поиска или адрес сайта"},
+                    "press_enter": {"type": "boolean", "description": "Нажимать ли Enter после ввода"}
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "type_text",
+            "description": "Печатает или вставляет произвольный текст в текущее активное текстовое поле или окно (с поддержкой русского языка).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "text": {"type": "string", "description": "Текст для ввода"},
+                    "press_enter": {"type": "boolean", "description": "Нажимать ли Enter после ввода"}
+                },
+                "required": ["text"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "press_key",
+            "description": "Нажимает клавишу на клавиатуре (enter, space, backspace, escape, tab, up, down, f11, delete).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "key": {"type": "string", "description": "Название клавиши (например: enter, space, backspace, escape)"}
+                },
+                "required": ["key"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "press_hotkey",
+            "description": "Нажимает комбинацию клавиш (например: ctrl+c, ctrl+v, ctrl+a, ctrl+z, alt+f4, win+d, win+tab).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "hotkey": {"type": "string", "description": "Комбинация клавиш через плюс (например: ctrl+c, alt+f4)"}
+                },
+                "required": ["hotkey"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "scroll_screen",
+            "description": "Прокручивает активное окно или веб-страницу вверх или вниз.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "direction": {"type": "string", "enum": ["up", "down"], "description": "Направление: 'down' (вниз) или 'up' (вверх)"}
+                },
+                "required": ["direction"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "close_active_window",
+            "description": "Закрывает текущее активное окно программы (Alt+F4).",
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "switch_window",
+            "description": "Переключает активное окно на следующее (Alt+Tab).",
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "new_browser_tab",
+            "description": "Открывает новую вкладку в браузере (Ctrl+T).",
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "close_browser_tab",
+            "description": "Закрывает текущую открытую вкладку в браузере (Ctrl+W).",
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "reload_page",
+            "description": "Обновляет текущую страницу в браузере (F5).",
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "open_file",
+            "description": "Находит и открывает файл на компьютере по названию.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "filename": {"type": "string", "description": "Имя файла"}
+                },
+                "required": ["filename"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "show_file_in_folder",
+            "description": "Показывает файл в проводнике Windows.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "filename": {"type": "string", "description": "Имя файла"}
+                },
+                "required": ["filename"],
             },
         },
     },
@@ -415,6 +631,13 @@ class AssistantBrain:
                     tool_results.append(str(res))
 
                 self.openai_messages.append(msg)
+                for tc, res in zip(msg.tool_calls, tool_results):
+                    self.openai_messages.append({
+                        "role": "tool",
+                        "tool_call_id": tc.id,
+                        "name": tc.function.name,
+                        "content": str(res),
+                    })
                 return " ".join(tool_results)
 
             answer = msg.content or "Слушаюсь и повинуюсь!"

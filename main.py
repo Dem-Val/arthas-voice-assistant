@@ -120,6 +120,9 @@ def run_voice_loop():
     # Приветственная фраза при старте
     tts.speak(f"Привет! Я {assistant_name}. Чем помочь?")
 
+    last_interaction_time = 0.0
+    FOLLOWUP_WINDOW_SECONDS = 8.0  # Окно живого диалога: 8 секунд после ответа команды принимаются без повторения имени
+
     while True:
         try:
             # Слушаем фоновый звук
@@ -129,13 +132,16 @@ def run_voice_loop():
 
             print(f"[Услышано]: {phrase}")
             is_wake, command = stt.check_wake_word(phrase)
+            now = time.time()
+            in_followup = (now - last_interaction_time) < FOLLOWUP_WINDOW_SECONDS
 
             if is_wake:
                 stt.play_wake_sound()
 
                 if command:
-                    # Пользователь сказал имя и команду сразу: "Артас, открой стим"
+                    # Пользователь сказал имя и команду сразу: "Артас, открой браузер"
                     process_command(command)
+                    last_interaction_time = time.time()
                 else:
                     # Пользователь сказал только имя: "Артас"
                     tts.speak("Слушаю вас!", block=True)
@@ -143,8 +149,14 @@ def run_voice_loop():
                     next_phrase = stt.listen_phrase(timeout=7, phrase_time_limit=10)
                     if next_phrase:
                         process_command(next_phrase)
+                        last_interaction_time = time.time()
                     else:
                         tts.speak("Не расслышал команду. Если понадоблюсь — позовите.")
+            elif in_followup:
+                # Пользователь продолжает цепочку команд без повторения имени (например: "открой браузер" -> "напиши в строку поиска ютуб")
+                print(f"[Диалог] Команда в режиме непрерывной беседы: {phrase}")
+                process_command(phrase)
+                last_interaction_time = time.time()
 
         except KeyboardInterrupt:
             print("\n[Выход] Завершение работы...")
